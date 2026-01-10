@@ -1,0 +1,307 @@
+# ==============================================
+# MAIN GITIGNORE FOR MESS PG SATHI PROJECT
+# Covers both Client (React/Vite) and Server (Spring Boot)
+# ==============================================
+
+# ==============================================
+# IDE & EDITOR FILES
+# ==============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.factorypath
+.settings/
+.springBeans
+.sts4-cache
+nbproject/
+.nb-gradle/
+
+# ==============================================
+# OS GENERATED FILES
+# ==============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ==============================================
+# CLIENT (React/Vite/Node.js) SPECIFIC
+# ==============================================
+
+## Dependencies
+client/node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+## Build outputs
+client/dist/
+client/build/
+dist/
+build/
+
+## Vite specific
+client/*.local
+*.local
+
+## Package manager files
+client/package-lock.json
+client/yarn.lock
+client/pnpm-lock.yaml
+
+## Coverage and testing
+client/coverage/
+coverage/
+*.lcov
+.nyc_output
+
+## Cache directories
+client/.cache/
+client/.parcel-cache/
+.cache/
+.parcel-cache/
+client/.eslintcache
+.eslintcache
+
+## Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# ==============================================
+# SERVER (Spring Boot/Maven/Java) SPECIFIC
+# ==============================================
+
+## Maven
+server/**/target/
+**/target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+## Gradle (if used)
+server/**/build/
+server/**/.gradle/
+**/build/
+**/.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+## Java compiled files
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+## Spring Boot specific
+server/**/HELP.md
+**/HELP.md
+
+# ==============================================
+# ENVIRONMENT & CONFIGURATION FILES
+# ==============================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+## Server configuration (SENSITIVE!)
+server/**/application.properties
+server/**/application-*.properties
+server/**/application.yml
+server/**/application-*.yml
+**/application.properties
+**/application-*.properties
+
+# ==============================================
+# DATABASE FILES
+# ==============================================
+*.db
+*.sqlite
+*.sqlite3
+*.h2.db
+
+# ==============================================
+# LOGS
+# ==============================================
+logs/
+*.log
+server/**/*.log
+client/**/*.log
+
+# ==============================================
+# TEMPORARY & CACHE FILES
+# ==============================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+## NPM/Yarn cache
+.npm
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+## Maven cache
+.m2/repository/
+
+# ==============================================
+# SECURITY & SENSITIVE DATA
+# ==============================================
+**/secrets/
+**/credentials/
+**/*secret*
+**/*password*
+**/*key*
+**/*token*
+
+## SSH keys
+*.pem
+*.key
+id_rsa
+id_dsa
+
+# ==============================================
+# MEDIA & ASSETS (Large files)
+# ==============================================
+*.mov
+*.mp4
+*.mp3
+*.avi
+*.wmv
+*.flv
+*.mkv
+
+# ==============================================
+# ARCHIVES
+# ==============================================
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# ==============================================
+# DOCUMENTATION BUILDS
+# ==============================================
+docs/_build/
+site/
+
+# ==============================================
+# TESTING
+# ==============================================
+## Client testing
+client/cypress/screenshots/
+client/cypress/videos/
+client/.nyc_output/
+client/coverage/
+
+## Server testing  
+server/**/test-results/
+**/test-results/
+
+# ==============================================
+# DEPLOYMENT
+# ==============================================
+.vercel
+.netlify
+
+## Docker
+.dockerignore
+Dockerfile
+docker-compose*.yml
+
+## Kubernetes
+k8s/
+*.k8s.yml
+
+# ==============================================
+# MISC
+# ==============================================
+.history/
+.eslintcache
+.stylelintcache
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+## VS Code workspace
+*.code-workspace
+
+## JetBrains
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+## NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+## Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+## Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+## Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# ==============================================
+# PROJECT SPECIFIC (Add your custom ignores here)
+# ==============================================
+
+## Uploads directory (if you have file uploads)
+uploads/
+**/uploads/
+
+## Generated API documentation
+**/api-docs/
+
+## Backup files
+*.backup
+*_backup*
+backup_*

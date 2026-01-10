@@ -1,0 +1,1231 @@
+{
+  "info": {
+    "_postman_id": "mess-pg-sathi-api-collection",
+    "name": "Mess PG Sathi API",
+    "description": "Complete API collection for Mess PG Sathi application - A PG/Mess booking platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ownerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "seekerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "propertyId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bookingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "inquiryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "visitId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paymentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reviewId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "1. Register - PG Owner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"fullName\": \"Test Owner\",\n    \"email\": \"owner@example.com\",\n    \"password\": \"Password123!\",\n    \"phoneNumber\": \"9876543210\",\n    \"role\": \"PG_OWNER\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "1. Register - Room Finder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"fullName\": \"Test Seeker\",\n    \"email\": \"seeker@example.com\",\n    \"password\": \"Password123!\",\n    \"phoneNumber\": \"9876543211\",\n    \"role\": \"ROOM_FINDER\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "2. Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"seeker@example.com\",\n    \"otp\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/verify-otp"
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"seeker@example.com\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/resend-otp"
+          }
+        },
+        {
+          "name": "Check Email Availability",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"test@example.com\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/check-email"
+          }
+        },
+        {
+          "name": "3. Login - PG Owner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('ownerToken', jsonData.token);",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"owner@example.com\",\n    \"password\": \"Password123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "3. Login - Room Finder",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('seekerToken', jsonData.token);",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"seeker@example.com\",\n    \"password\": \"Password123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"seeker@example.com\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/forgot-password"
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"seeker@example.com\",\n    \"otp\": \"123456\",\n    \"newPassword\": \"NewPassword123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/reset-password"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏠 Properties",
+      "item": [
+        {
+          "name": "Add Property (Owner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.collectionVariables.set('propertyId', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Green Valley PG\",\n    \"description\": \"A comfortable PG with all amenities near college. Great for students.\",\n    \"propertyType\": \"PG\",\n    \"address\": \"123, MG Road, Near City Mall\",\n    \"city\": \"Kolkata\",\n    \"state\": \"West Bengal\",\n    \"pinCode\": \"700001\",\n    \"latitude\": 22.5726,\n    \"longitude\": 88.3639,\n    \"totalRooms\": 20,\n    \"availableRooms\": 15,\n    \"monthlyRent\": 8000,\n    \"securityDeposit\": 16000,\n    \"roomType\": \"DOUBLE\",\n    \"genderPreference\": \"MALE\",\n    \"wifi\": true,\n    \"ac\": true,\n    \"parking\": true,\n    \"meals\": true,\n    \"laundry\": true,\n    \"tv\": false,\n    \"gym\": false,\n    \"security\": true,\n    \"powerBackup\": true,\n    \"housekeeping\": true,\n    \"nearbyLandmarks\": \"Metro Station, City Mall\",\n    \"rulesAndRegulations\": \"No smoking, No drinking\",\n    \"distanceFromCollege\": 2.5,\n    \"collegeNearby\": \"ABC University\",\n    \"imageUrls\": [\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/properties/add"
+          }
+        },
+        {
+          "name": "Get My Properties (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/properties/my-properties"
+          }
+        },
+        {
+          "name": "Get My Active Properties (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/properties/my-active-properties"
+          }
+        },
+        {
+          "name": "Get Property by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/properties/{{propertyId}}"
+          }
+        },
+        {
+          "name": "Update Property (Owner)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"propertyName\": \"Green Valley PG - Updated\",\n    \"monthlyRent\": 8500,\n    \"availableBeds\": 12\n}"
+            },
+            "url": "{{baseUrl}}/api/properties/{{propertyId}}"
+          }
+        },
+        {
+          "name": "Get Property Statistics (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/properties/my-statistics"
+          }
+        },
+        {
+          "name": "Search Properties (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/properties/public/search?city=Kolkata&propertyType=PG&minPrice=5000&maxPrice=15000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "properties", "public", "search"],
+              "query": [
+                {"key": "city", "value": "Kolkata"},
+                {"key": "propertyType", "value": "PG"},
+                {"key": "roomType", "value": "DOUBLE_SHARING", "disabled": true},
+                {"key": "genderPreference", "value": "MALE", "disabled": true},
+                {"key": "minPrice", "value": "5000"},
+                {"key": "maxPrice", "value": "15000"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Property (Owner)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/properties/{{propertyId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📅 Bookings",
+      "item": [
+        {
+          "name": "Create Booking Request (Seeker)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.collectionVariables.set('bookingId', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"propertyId\": \"{{propertyId}}\",\n    \"checkInDate\": \"2026-02-01\",\n    \"numberOfMonths\": 6\n}"
+            },
+            "url": "{{baseUrl}}/api/bookings/request"
+          }
+        },
+        {
+          "name": "Submit Documents (Seeker)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"documents\": [\n        {\n            \"documentType\": \"AADHAR\",\n            \"documentUrl\": \"https://example.com/aadhar.pdf\",\n            \"documentNumber\": \"1234-5678-9012\"\n        },\n        {\n            \"documentType\": \"COLLEGE_ID\",\n            \"documentUrl\": \"https://example.com/college-id.pdf\",\n            \"documentNumber\": \"STU2024001\"\n        }\n    ]\n}"
+            },
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/documents"
+          }
+        },
+        {
+          "name": "Get My Bookings (Seeker)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/bookings/my-bookings"
+          }
+        },
+        {
+          "name": "Get My Active Booking (Seeker)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/bookings/my-bookings/active"
+          }
+        },
+        {
+          "name": "Get Owner Booking Requests (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/bookings/owner/requests"
+          }
+        },
+        {
+          "name": "Get Pending Booking Requests (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/bookings/owner/requests/pending"
+          }
+        },
+        {
+          "name": "Confirm Booking (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/confirm"
+          }
+        },
+        {
+          "name": "Reject Booking (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/reject?reason=No rooms available",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "{{bookingId}}", "reject"],
+              "query": [
+                {"key": "reason", "value": "No rooms available"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify Documents (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/verify-documents?approved=true&note=Documents verified successfully",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "{{bookingId}}", "verify-documents"],
+              "query": [
+                {"key": "approved", "value": "true"},
+                {"key": "note", "value": "Documents verified successfully"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Request Payment (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/request-payment"
+          }
+        },
+        {
+          "name": "Confirm Advance Payment (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/confirm-payment?paymentMethod=UPI",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "{{bookingId}}", "confirm-payment"],
+              "query": [
+                {"key": "paymentMethod", "value": "UPI"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Complete Booking (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/complete?checkOutDate=2026-08-01",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "{{bookingId}}", "complete"],
+              "query": [
+                {"key": "checkOutDate", "value": "2026-08-01"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/cancel?reason=Changed plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "{{bookingId}}", "cancel"],
+              "query": [
+                {"key": "reason", "value": "Changed plans"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "💰 Payments",
+      "item": [
+        {
+          "name": "Get My Payments (Seeker)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments/my-payments"
+          }
+        },
+        {
+          "name": "Get My Pending Payments (Seeker)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments/my-payments/pending"
+          }
+        },
+        {
+          "name": "Get My Overdue Payments (Seeker)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments/my-payments/overdue"
+          }
+        },
+        {
+          "name": "Get Late Fee",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments/{{paymentId}}/late-fee"
+          }
+        },
+        {
+          "name": "Get Owner Payments (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments/owner/payments"
+          }
+        },
+        {
+          "name": "Record Payment (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/{{paymentId}}/record?paymentMethod=UPI&transactionId=TXN123456",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "{{paymentId}}", "record"],
+              "query": [
+                {"key": "paymentMethod", "value": "UPI"},
+                {"key": "transactionId", "value": "TXN123456"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Monthly Payment (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments/create-monthly/{{bookingId}}"
+          }
+        },
+        {
+          "name": "Get Payment Statistics (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments/owner/statistics"
+          }
+        }
+      ]
+    },
+    {
+      "name": "❤️ Favorites (Seeker)",
+      "item": [
+        {
+          "name": "Add to Favorites",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seeker/favorites/{{propertyId}}?note=Nice property near college",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seeker", "favorites", "{{propertyId}}"],
+              "query": [
+                {"key": "note", "value": "Nice property near college"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Toggle Favorite",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/seeker/favorites/{{propertyId}}/toggle"
+          }
+        },
+        {
+          "name": "Get My Favorites",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/seeker/favorites"
+          }
+        },
+        {
+          "name": "Check if Favorited",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/seeker/favorites/{{propertyId}}/check"
+          }
+        },
+        {
+          "name": "Update Favorite Note",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seeker/favorites/{{propertyId}}/note?note=Updated note - great location!",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seeker", "favorites", "{{propertyId}}", "note"],
+              "query": [
+                {"key": "note", "value": "Updated note - great location!"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove from Favorites",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/seeker/favorites/{{propertyId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📧 Inquiries",
+      "item": [
+        {
+          "name": "Send Inquiry (Seeker)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.collectionVariables.set('inquiryId', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"propertyId\": \"{{propertyId}}\",\n    \"subject\": \"Inquiry about availability\",\n    \"message\": \"Hi, I am interested in your PG. Is there a bed available from next month?\",\n    \"inquiryType\": \"AVAILABILITY\"\n}"
+            },
+            "url": "{{baseUrl}}/api/seeker/inquiries"
+          }
+        },
+        {
+          "name": "Get My Inquiries (Seeker)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/seeker/inquiries"
+          }
+        },
+        {
+          "name": "Get All Inquiries (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/owner/inquiries"
+          }
+        },
+        {
+          "name": "Get Pending Inquiries (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/owner/inquiries/pending"
+          }
+        },
+        {
+          "name": "Reply to Inquiry (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/owner/inquiries/{{inquiryId}}/reply?message=Yes, we have 2 beds available from next month.",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "owner", "inquiries", "{{inquiryId}}", "reply"],
+              "query": [
+                {"key": "message", "value": "Yes, we have 2 beds available from next month."}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Inquiry as Read (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/owner/inquiries/{{inquiryId}}/read"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📆 Visit Schedules",
+      "item": [
+        {
+          "name": "Schedule Visit (Seeker)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.collectionVariables.set('visitId', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"propertyId\": \"{{propertyId}}\",\n    \"visitDate\": \"2026-01-20\",\n    \"visitTime\": \"14:00\",\n    \"notes\": \"I would like to see the double sharing room\"\n}"
+            },
+            "url": "{{baseUrl}}/api/seeker/visits"
+          }
+        },
+        {
+          "name": "Get My Visits (Seeker)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/seeker/visits"
+          }
+        },
+        {
+          "name": "Get Upcoming Visits (Seeker)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/seeker/visits/upcoming"
+          }
+        },
+        {
+          "name": "Cancel Visit (Seeker)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seeker/visits/{{visitId}}/cancel?reason=Schedule conflict",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seeker", "visits", "{{visitId}}", "cancel"],
+              "query": [
+                {"key": "reason", "value": "Schedule conflict"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Pending Visit Requests (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/owner/visits/pending"
+          }
+        },
+        {
+          "name": "Get Today's Visits (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/owner/visits/today"
+          }
+        },
+        {
+          "name": "Approve Visit (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/owner/visits/{{visitId}}/approve"
+          }
+        },
+        {
+          "name": "Reject Visit (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/owner/visits/{{visitId}}/reject?reason=Fully booked for that day",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "owner", "visits", "{{visitId}}", "reject"],
+              "query": [
+                {"key": "reason", "value": "Fully booked for that day"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "⭐ Reviews",
+      "item": [
+        {
+          "name": "Add Review (Seeker)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.collectionVariables.set('reviewId', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"propertyId\": \"{{propertyId}}\",\n    \"overallRating\": 4,\n    \"cleanliness\": 5,\n    \"food\": 4,\n    \"amenities\": 4,\n    \"location\": 5,\n    \"valueForMoney\": 4,\n    \"ownerBehavior\": 5,\n    \"title\": \"Great PG experience\",\n    \"comment\": \"Clean rooms, good food, and very cooperative owner. Highly recommended!\",\n    \"pros\": [\"Clean rooms\", \"Good food\", \"Cooperative owner\"],\n    \"cons\": [\"Limited parking\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/seeker/reviews"
+          }
+        },
+        {
+          "name": "Get My Reviews (Seeker)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/seeker/reviews"
+          }
+        },
+        {
+          "name": "Update Review (Seeker)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"overallRating\": 5,\n    \"title\": \"Excellent PG experience - Updated\",\n    \"comment\": \"After 2 months, I can say this is one of the best PGs. Updated my rating!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/seeker/reviews/{{reviewId}}"
+          }
+        },
+        {
+          "name": "Delete Review (Seeker)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seekerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/seeker/reviews/{{reviewId}}"
+          }
+        },
+        {
+          "name": "Get Property Reviews (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/public/reviews/property/{{propertyId}}"
+          }
+        },
+        {
+          "name": "Get Property Rating Summary (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/public/reviews/property/{{propertyId}}/summary"
+          }
+        },
+        {
+          "name": "Get Review by ID (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/public/reviews/{{reviewId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Owner Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/owner/dashboard"
+          }
+        }
+      ]
+    }
+  ]
+}
