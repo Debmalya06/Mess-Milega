@@ -58,6 +58,8 @@ public class WebSecurityConfig {
                 .requestMatchers("/api/properties/public/**").permitAll()
                 .requestMatchers("/api/properties/{id}").permitAll()
                 .requestMatchers("/api/public/**").permitAll()  // Public reviews endpoint
+                // Swagger UI endpoints
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
