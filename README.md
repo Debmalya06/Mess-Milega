@@ -12,7 +12,7 @@ A full-stack web application to help users find and manage Mess and PG (Paying G
 **Backend:**
 - Java Spring Boot
 - Spring Security (JWT Authentication)
-- MySQL/PostgreSQL
+- MySQL
 
 ## Project Structure
 
