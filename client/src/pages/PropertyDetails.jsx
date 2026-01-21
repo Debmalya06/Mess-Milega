@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
+import axios from "axios"
 import {
   MapPin,
   Star,
@@ -31,54 +32,48 @@ const PropertyDetails = () => {
   const [showContactModal, setShowContactModal] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
 
-  // Mock property data - replace with API call
+  // Fetch property data from backend API
   useEffect(() => {
-    const mockProperty = {
-      id: id,
-      title: "Comfortable PG for Working Professionals",
-      description:
-        "Spacious and well-furnished PG accommodation perfect for working professionals. Located in a prime area with excellent connectivity to major IT hubs and commercial centers.",
-      price: 12000,
-      location: "Koramangala, Bangalore",
-      type: "pg",
-      rating: 4.5,
-      reviews: 28,
-      images: [
-        "/placeholder.svg?height=400&width=600",
-        "/placeholder.svg?height=400&width=600",
-        "/placeholder.svg?height=400&width=600",
-        "/placeholder.svg?height=400&width=600",
-      ],
-      amenities: ["wifi", "parking", "meals", "laundry", "ac", "security", "power_backup"],
-      roomType: "single",
-      gender: "co-ed",
-      availableRooms: 3,
-      owner: {
-        name: "Rajesh Kumar",
-        phone: "+91 9876543210",
-        email: "rajesh@example.com",
-        verified: true,
-        rating: 4.8,
-      },
-      rules: [
-        "No smoking inside the premises",
-        "Visitors allowed till 9 PM",
-        "Monthly rent to be paid by 5th of every month",
-        "One month security deposit required",
-      ],
-      nearbyPlaces: [
-        { name: "Metro Station", distance: "0.5 km" },
-        { name: "Shopping Mall", distance: "1.2 km" },
-        { name: "Hospital", distance: "0.8 km" },
-        { name: "IT Park", distance: "2.1 km" },
-      ],
-      coordinates: { lat: 12.9352, lng: 77.6245 },
+    const fetchProperty = async () => {
+      try {
+        const response = await axios.get(`/api/properties/${id}`)
+        const data = response.data
+        
+        // Map backend response to frontend format
+        setProperty({
+          id: data.id,
+          title: data.title,
+          description: data.description,
+          price: data.price,
+          location: `${data.address}, ${data.city}`,
+          type: data.propertyType?.toLowerCase(),
+          rating: data.averageRating || 0,
+          reviews: data.totalReviews || 0,
+          images: data.images?.length > 0 ? data.images : ["/placeholder.svg?height=400&width=600"],
+          amenities: data.amenities || [],
+          roomType: data.roomType?.toLowerCase(),
+          gender: data.genderPreference?.toLowerCase(),
+          availableRooms: data.availableRooms,
+          owner: {
+            name: data.ownerName || "Property Owner",
+            phone: data.ownerPhone || "",
+            email: data.ownerEmail || "",
+            verified: true,
+            rating: 4.8,
+          },
+          rules: data.rules || [],
+          nearbyPlaces: data.nearbyPlaces || [],
+          coordinates: { lat: data.latitude || 0, lng: data.longitude || 0 },
+        })
+      } catch (error) {
+        console.error("Error fetching property:", error)
+        toast.error("Failed to load property details")
+      } finally {
+        setLoading(false)
+      }
     }
 
-    setTimeout(() => {
-      setProperty(mockProperty)
-      setLoading(false)
-    }, 1000)
+    fetchProperty()
   }, [id])
 
   const amenityIcons = {

@@ -30,12 +30,20 @@ const Search = () => {
   const fetchProperties = async () => {
     try {
       setLoading(true)
-      const response = await axios.get("/api/properties/search", {
-        params: filters,
-      })
+      // Map frontend filter names to backend parameter names
+      const params = {
+        city: filters.location || undefined,
+        propertyType: filters.type || undefined,
+        roomType: filters.roomType || undefined,
+        genderPreference: filters.gender || undefined,
+        minPrice: filters.minPrice || undefined,
+        maxPrice: filters.maxPrice || undefined,
+      }
+      const response = await axios.get("/api/properties/public/search", { params })
       setProperties(response.data)
     } catch (error) {
       console.error("Error fetching properties:", error)
+      setProperties([])
     } finally {
       setLoading(false)
     }

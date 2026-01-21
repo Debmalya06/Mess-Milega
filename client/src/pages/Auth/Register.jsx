@@ -18,7 +18,10 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { register } = useAuth()
+  const [showOtpModal, setShowOtpModal] = useState(false)
+  const [otp, setOtp] = useState("")
+  const [registeredEmail, setRegisteredEmail] = useState("")
+  const { register, verifyOtp, resendOtp } = useAuth()
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -36,13 +39,25 @@ const Register = () => {
       return
     }
 
+    // Validate phone number - must be exactly 10 digits
+    const phoneRegex = /^[0-9]{10}$/
+    if (!phoneRegex.test(formData.phone)) {
+      toast.error("Phone number must be exactly 10 digits")
+      return
+    }
+
     setLoading(true)
 
     try {
       const result = await register(formData)
       if (result.success) {
-        toast.success("Registration successful!")
-        navigate("/dashboard")
+        toast.success(result.message || "Registration successful! Please verify your email.")
+        if (result.requiresVerification) {
+          setRegisteredEmail(result.email)
+          setShowOtpModal(true)
+        } else {
+          navigate("/login")
+        }
       } else {
         toast.error(result.error)
       }
@@ -50,6 +65,39 @@ const Register = () => {
       toast.error("Registration failed. Please try again.")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      const result = await verifyOtp(registeredEmail, otp)
+      if (result.success) {
+        toast.success(result.message || "Email verified successfully!")
+        setShowOtpModal(false)
+        navigate("/login")
+      } else {
+        toast.error(result.error)
+      }
+    } catch (error) {
+      toast.error("OTP verification failed. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResendOtp = async () => {
+    try {
+      const result = await resendOtp(registeredEmail)
+      if (result.success) {
+        toast.success(result.message || "OTP resent successfully!")
+      } else {
+        toast.error(result.error)
+      }
+    } catch (error) {
+      toast.error("Failed to resend OTP.")
     }
   }
 
@@ -112,12 +160,15 @@ const Register = () => {
                   name="phone"
                   type="tel"
                   required
+                  maxLength={10}
+                  pattern="[0-9]{10}"
                   value={formData.phone}
                   onChange={handleChange}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your phone number"
+                  placeholder="Enter 10-digit phone number"
                 />
               </div>
+              <p className="text-xs text-gray-500 mt-1">Must be exactly 10 digits</p>
             </div>
 
             <div>
@@ -227,6 +278,56 @@ const Register = () => {
           </div>
         </div>
       </div>
+
+      {/* OTP Verification Modal */}
+      {showOtpModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
+            <h3 className="text-2xl font-bold text-gray-900 mb-2 text-center">Verify Your Email</h3>
+            <p className="text-gray-600 text-center mb-6">
+              We've sent a verification code to <br />
+              <span className="font-medium">{registeredEmail}</span>
+            </p>
+
+            <form onSubmit={handleOtpSubmit}>
+              <div className="mb-6">
+                <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
+                  Enter OTP
+                </label>
+                <input
+                  id="otp"
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  maxLength={6}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl tracking-widest"
+                  placeholder="000000"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mb-4"
+              >
+                {loading ? "Verifying..." : "Verify Email"}
+              </button>
+            </form>
+
+            <p className="text-center text-gray-600">
+              Didn't receive the code?{" "}
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                className="text-blue-600 hover:text-blue-500 font-medium"
+              >
+                Resend OTP
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

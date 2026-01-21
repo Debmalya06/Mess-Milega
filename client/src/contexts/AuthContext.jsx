@@ -42,11 +42,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await axios.post("/api/auth/login", { email, password })
-      const { token, user } = response.data
+      const { accessToken, id, fullName, email: userEmail, role } = response.data
 
-      localStorage.setItem("token", token)
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
-      setUser(user)
+      localStorage.setItem("token", accessToken)
+      axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`
+      setUser({ id, fullName, email: userEmail, role })
 
       return { success: true }
     } catch (error) {
@@ -56,16 +56,43 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post("/api/auth/register", userData)
-      const { token, user } = response.data
-
-      localStorage.setItem("token", token)
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
-      setUser(user)
-
-      return { success: true }
+      // Map frontend fields to backend SignupRequest format
+      const signupData = {
+        fullName: userData.name,
+        email: userData.email,
+        phoneNumber: userData.phone,
+        password: userData.password,
+        role: userData.role === "owner" ? "PG_OWNER" : "ROOM_FINDER"
+      }
+      const response = await axios.post("/api/auth/register", signupData)
+      
+      // Backend returns MessageResponse with OTP info, user needs to verify email
+      return { 
+        success: true, 
+        message: response.data.message,
+        requiresVerification: true,
+        email: userData.email
+      }
     } catch (error) {
       return { success: false, error: error.response?.data?.message || "Registration failed" }
+    }
+  }
+
+  const verifyOtp = async (email, otp) => {
+    try {
+      const response = await axios.post("/api/auth/verify-otp", { email, otp })
+      return { success: true, message: response.data.message }
+    } catch (error) {
+      return { success: false, error: error.response?.data?.message || "OTP verification failed" }
+    }
+  }
+
+  const resendOtp = async (email) => {
+    try {
+      const response = await axios.post("/api/auth/resend-otp", { email })
+      return { success: true, message: response.data.message }
+    } catch (error) {
+      return { success: false, error: error.response?.data?.message || "Failed to resend OTP" }
     }
   }
 
@@ -79,6 +106,8 @@ export const AuthProvider = ({ children }) => {
     user,
     login,
     register,
+    verifyOtp,
+    resendOtp,
     logout,
     loading,
   }

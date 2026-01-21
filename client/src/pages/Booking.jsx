@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
+import axios from "axios"
 import { Upload, CreditCard, Shield, CheckCircle, AlertCircle } from "lucide-react"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
@@ -31,23 +32,31 @@ const Booking = () => {
     paymentMethod: "card",
   })
 
-  // Mock property data
+  // Fetch property data from backend API
   useEffect(() => {
-    const mockProperty = {
-      id: id,
-      title: "Comfortable PG for Working Professionals",
-      price: 12000,
-      location: "Koramangala, Bangalore",
-      owner: {
-        name: "Rajesh Kumar",
-        phone: "+91 9876543210",
-      },
+    const fetchProperty = async () => {
+      try {
+        const response = await axios.get(`/api/properties/${id}`)
+        const data = response.data
+        setProperty({
+          id: data.id,
+          title: data.title,
+          price: data.price,
+          location: `${data.address}, ${data.city}`,
+          owner: {
+            name: data.ownerName || "Property Owner",
+            phone: data.ownerPhone || "",
+          },
+        })
+      } catch (error) {
+        console.error("Error fetching property:", error)
+        toast.error("Failed to load property details")
+      } finally {
+        setLoading(false)
+      }
     }
 
-    setTimeout(() => {
-      setProperty(mockProperty)
-      setLoading(false)
-    }, 1000)
+    fetchProperty()
   }, [id])
 
   const handleInputChange = (field, value) => {
@@ -92,13 +101,21 @@ const Booking = () => {
 
   const handleBookingSubmit = async () => {
     try {
-      // Mock booking submission
+      // Submit booking request to backend API
+      const bookingRequest = {
+        propertyId: id,
+        checkInDate: bookingData.moveInDate.toISOString().split('T')[0],
+        numberOfMonths: parseInt(bookingData.duration),
+      }
+      
+      await axios.post("/api/bookings/request", bookingRequest)
       toast.success("Booking submitted successfully!")
       setTimeout(() => {
         navigate("/dashboard")
       }, 2000)
     } catch (error) {
-      toast.error("Booking failed. Please try again.")
+      console.error("Booking error:", error)
+      toast.error(error.response?.data?.message || "Booking failed. Please try again.")
     }
   }
 
