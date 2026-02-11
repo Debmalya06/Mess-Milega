@@ -4,23 +4,31 @@ import com.example.Mess_PgSathi.model.Property;
 import com.example.Mess_PgSathi.payload.request.AddPropertyRequest;
 import com.example.Mess_PgSathi.payload.response.MessageResponse;
 import com.example.Mess_PgSathi.payload.response.PropertyResponse;
+import com.example.Mess_PgSathi.service.CloudinaryService;
 import com.example.Mess_PgSathi.service.PropertyService;
 import com.example.Mess_PgSathi.security.services.UserDetailsImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/properties")
 @RequiredArgsConstructor
+@Slf4j
 public class PropertyController {
 
     private final PropertyService propertyService;
+    private final CloudinaryService cloudinaryService;
+    private final ObjectMapper objectMapper;
 
     /**
      * Add new property (Only PG_OWNER can access)
@@ -37,6 +45,39 @@ public class PropertyController {
             return ResponseEntity.ok(propertyResponse);
 
         } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Add new property with images (Only PG_OWNER can access)
+     * Accepts multipart form data with property details and image files
+     */
+    @PostMapping(value = "/add-with-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('PG_OWNER')")
+    public ResponseEntity<?> addPropertyWithImages(
+            @RequestPart("property") String propertyJson,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            Authentication authentication) {
+        try {
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            String ownerId = userDetails.getId();
+
+            // Parse the property JSON
+            AddPropertyRequest request = objectMapper.readValue(propertyJson, AddPropertyRequest.class);
+
+            // Upload images to Cloudinary if provided
+            if (images != null && !images.isEmpty()) {
+                List<String> imageUrls = cloudinaryService.uploadImages(images, "properties");
+                request.setImageUrls(imageUrls);
+                log.info("Uploaded {} images for property", imageUrls.size());
+            }
+
+            PropertyResponse propertyResponse = propertyService.addProperty(request, ownerId);
+            return ResponseEntity.ok(propertyResponse);
+
+        } catch (Exception e) {
+            log.error("Error adding property with images: {}", e.getMessage());
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }

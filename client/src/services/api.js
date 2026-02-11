@@ -171,12 +171,66 @@ export const propertyService = {
 
   // Owner endpoints
   addProperty: (data) => api.post("/api/properties/add", data),
+  
+  // Add property with images (multipart form data)
+  addPropertyWithImages: (propertyData, imageFiles) => {
+    const formData = new FormData();
+    formData.append("property", JSON.stringify(propertyData));
+    
+    if (imageFiles && imageFiles.length > 0) {
+      imageFiles.forEach((file) => {
+        formData.append("images", file);
+      });
+    }
+    
+    return api.post("/api/properties/add-with-images", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+  
   updateProperty: (propertyId, data) =>
     api.put(`/api/properties/${propertyId}`, data),
   deleteProperty: (propertyId) => api.delete(`/api/properties/${propertyId}`),
   getMyProperties: () => api.get("/api/properties/my-properties"),
   getMyActiveProperties: () => api.get("/api/properties/my-active-properties"),
   getMyPropertyStatistics: () => api.get("/api/properties/my-statistics"),
+};
+
+// ===================== IMAGE UPLOAD SERVICES =====================
+export const imageService = {
+  // Upload single image
+  uploadImage: (file, folder = "properties") => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", folder);
+    
+    return api.post("/api/images/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+  
+  // Upload multiple images
+  uploadMultipleImages: (files, folder = "properties") => {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+    formData.append("folder", folder);
+    
+    return api.post("/api/images/upload-multiple", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+  
+  // Delete image
+  deleteImage: (imageUrl) => 
+    api.delete("/api/images/delete", { params: { url: imageUrl } }),
 };
 
 // ===================== PUBLIC REVIEW SERVICES =====================

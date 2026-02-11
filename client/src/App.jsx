@@ -11,6 +11,7 @@ import Search from "./pages/Search"
 import PropertyDetails from "./pages/PropertyDetails"
 import Dashboard from "./pages/Dashboard/Dashboard"
 import OwnerDashboard from "./pages/Dashboard/OwnerDashboard"
+import AddProperty from "./pages/AddProperty"
 import Chat from "./pages/Chat"
 import Booking from "./pages/Booking"
 import BookingDetails from "./pages/BookingDetails"
@@ -40,6 +41,7 @@ function App() {
                 <Route path="/property/:id" element={<PropertyDetails />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/owner-dashboard" element={<OwnerDashboard />} />
+                <Route path="/add-property" element={<AddProperty />} />
                 <Route path="/chat" element={<Chat />} />
                 <Route path="/booking/:id" element={<Booking />} />
                 <Route path="/booking-details/:bookingId" element={<BookingDetails />} />
