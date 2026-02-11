@@ -38,14 +38,34 @@ const Booking = () => {
       try {
         const response = await axios.get(`/api/properties/${id}`)
         const data = response.data
+        
+        // Get location from various field formats
+        const getLocation = () => {
+          if (data.city && data.state) {
+            return `${data.address || ''}, ${data.city}, ${data.state}`;
+          }
+          if (data.address) {
+            if (typeof data.address === 'object') {
+              return `${data.address.street || ''}, ${data.address.city || ''}`;
+            }
+            return data.address;
+          }
+          return "Location not specified";
+        };
+        
         setProperty({
           id: data.id,
-          title: data.title,
-          price: data.price,
-          location: `${data.address}, ${data.city}`,
+          title: data.name || data.title,
+          price: data.monthlyRent || data.price,
+          securityDeposit: data.securityDeposit,
+          location: getLocation(),
+          roomType: data.roomType,
+          genderPreference: data.genderPreference,
+          availableRooms: data.availableRooms,
           owner: {
             name: data.ownerName || "Property Owner",
             phone: data.ownerPhone || "",
+            email: data.ownerEmail || "",
           },
         })
       } catch (error) {
@@ -56,7 +76,12 @@ const Booking = () => {
       }
     }
 
-    fetchProperty()
+    if (id) {
+      fetchProperty()
+    } else {
+      setLoading(false)
+      toast.error("Property ID is required")
+    }
   }, [id])
 
   const handleInputChange = (field, value) => {

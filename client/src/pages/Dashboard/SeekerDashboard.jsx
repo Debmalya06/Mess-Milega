@@ -978,7 +978,7 @@ const Dashboard = () => {
                                       View
                                     </Link>
                                     <Link
-                                      to={`/booking?propertyId=${property.id || property._id}`}
+                                      to={`/booking/${property.id || property._id}`}
                                       className="border border-blue-600 text-blue-600 py-1.5 px-3 rounded-lg text-sm hover:bg-blue-50"
                                     >
                                       Book
