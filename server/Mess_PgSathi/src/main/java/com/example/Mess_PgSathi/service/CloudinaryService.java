@@ -47,10 +47,8 @@ public class CloudinaryService {
                     ObjectUtils.asMap(
                             "folder", "mess_pg_sathi/" + folder,
                             "resource_type", "image",
-                            "transformation", ObjectUtils.asMap(
-                                    "quality", "auto:good",
-                                    "fetch_format", "auto"
-                            )
+                            "quality", "auto:good",
+                            "fetch_format", "auto"
                     ));
 
             String secureUrl = (String) uploadResult.get("secure_url");
