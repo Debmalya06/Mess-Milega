@@ -46,23 +46,104 @@ const PropertyDetails = () => {
         const response = await propertyService.getPropertyById(id)
         const data = response.data
         
+        // Helper function to convert boolean amenity flags to array
+        const getAmenities = () => {
+          if (Array.isArray(data.amenities)) return data.amenities;
+          const amenities = [];
+          if (data.wifi) amenities.push("WiFi");
+          if (data.ac) amenities.push("AC");
+          if (data.meals) amenities.push("Meals");
+          if (data.parking) amenities.push("Parking");
+          if (data.laundry) amenities.push("Laundry");
+          if (data.tv) amenities.push("TV");
+          if (data.gym) amenities.push("Gym");
+          if (data.security) amenities.push("Security");
+          if (data.powerBackup) amenities.push("Power Backup");
+          if (data.housekeeping) amenities.push("Housekeeping");
+          return amenities;
+        };
+        
+        // Helper function to get location string
+        const getLocation = () => {
+          if (data.city && data.state) {
+            return `${data.address || ''}, ${data.city}, ${data.state}`;
+          }
+          if (data.address) {
+            if (typeof data.address === 'object') {
+              return `${data.address.street || ''}, ${data.address.city || ''}`;
+            }
+            return data.address;
+          }
+          return "Location not specified";
+        };
+        
+        // Helper function to get images
+        const getImages = () => {
+          const images = data.imageUrls || data.images || [];
+          return images.length > 0 ? images : ["/placeholder.svg?height=400&width=600"];
+        };
+        
+        // Helper function to parse rules (handles string or array)
+        const getRules = () => {
+          if (Array.isArray(data.rules)) return data.rules;
+          if (data.rulesAndRegulations) {
+            // Split by common delimiters: newline, period followed by space, comma followed by space, or semicolon
+            return data.rulesAndRegulations
+              .split(/[\n;]|(?<=\.)\s+/)
+              .map(rule => rule.trim())
+              .filter(rule => rule.length > 0);
+          }
+          return [];
+        };
+        
+        // Helper function to parse nearby places (handles string or array)
+        const getNearbyPlaces = () => {
+          if (Array.isArray(data.nearbyPlaces)) return data.nearbyPlaces;
+          
+          const places = [];
+          
+          // Add college if available
+          if (data.collegeNearby) {
+            places.push({
+              name: data.collegeNearby,
+              distance: data.distanceFromCollege ? `${data.distanceFromCollege} km` : "Nearby"
+            });
+          }
+          
+          // Parse nearbyLandmarks string
+          if (data.nearbyLandmarks) {
+            const landmarks = data.nearbyLandmarks
+              .split(/[,;\n]/)
+              .map(landmark => landmark.trim())
+              .filter(landmark => landmark.length > 0);
+            
+            landmarks.forEach(landmark => {
+              places.push({ name: landmark, distance: "Nearby" });
+            });
+          }
+          
+          return places;
+        };
+        
         // Map backend response to frontend format
         setProperty({
           id: data.id,
-          title: data.title,
+          title: data.name || data.title,
           description: data.description,
           price: data.monthlyRent || data.price,
           securityDeposit: data.securityDeposit,
-          location: `${data.address?.street || data.address || ""}, ${data.address?.city || data.city || ""}`,
-          city: data.address?.city || data.city,
+          location: getLocation(),
+          city: data.city || data.address?.city,
+          state: data.state,
           type: data.propertyType?.toLowerCase() || "pg",
           rating: data.averageRating || 0,
           reviews: data.totalReviews || 0,
-          images: data.images?.length > 0 ? data.images : ["/placeholder.svg?height=400&width=600"],
-          amenities: data.amenities || [],
+          images: getImages(),
+          amenities: getAmenities(),
           roomType: data.roomType?.toLowerCase() || "single",
           gender: data.genderPreference?.toLowerCase() || "any",
           availableRooms: data.availableRooms || 0,
+          totalRooms: data.totalRooms || 0,
           owner: {
             id: data.ownerId,
             name: data.ownerName || "Property Owner",
@@ -71,8 +152,8 @@ const PropertyDetails = () => {
             verified: data.ownerVerified || true,
             rating: data.ownerRating || 4.8,
           },
-          rules: data.rules || [],
-          nearbyPlaces: data.nearbyPlaces || [],
+          rules: getRules(),
+          nearbyPlaces: getNearbyPlaces(),
           coordinates: { lat: data.latitude || 0, lng: data.longitude || 0 },
         })
         
@@ -103,12 +184,26 @@ const PropertyDetails = () => {
 
   const amenityIcons = {
     wifi: <Wifi className="h-5 w-5" />,
+    WiFi: <Wifi className="h-5 w-5" />,
     parking: <Car className="h-5 w-5" />,
+    Parking: <Car className="h-5 w-5" />,
     meals: <Utensils className="h-5 w-5" />,
+    Meals: <Utensils className="h-5 w-5" />,
     laundry: <Users className="h-5 w-5" />,
-    ac: <Users className="h-5 w-5" />,
+    Laundry: <Users className="h-5 w-5" />,
+    ac: <Shield className="h-5 w-5" />,
+    AC: <Shield className="h-5 w-5" />,
     security: <Shield className="h-5 w-5" />,
+    Security: <Shield className="h-5 w-5" />,
     power_backup: <Users className="h-5 w-5" />,
+    "Power Backup": <Users className="h-5 w-5" />,
+    powerBackup: <Users className="h-5 w-5" />,
+    tv: <Users className="h-5 w-5" />,
+    TV: <Users className="h-5 w-5" />,
+    gym: <Users className="h-5 w-5" />,
+    Gym: <Users className="h-5 w-5" />,
+    housekeeping: <Users className="h-5 w-5" />,
+    Housekeeping: <Users className="h-5 w-5" />,
   }
 
   const handleCall = () => {
@@ -285,27 +380,35 @@ const PropertyDetails = () => {
             {/* Rules */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4">House Rules</h2>
-              <ul className="space-y-2">
-                {property.rules.map((rule, index) => (
-                  <li key={index} className="flex items-start space-x-2">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700">{rule}</span>
-                  </li>
-                ))}
-              </ul>
+              {property.rules.length > 0 ? (
+                <ul className="space-y-2">
+                  {property.rules.map((rule, index) => (
+                    <li key={index} className="flex items-start space-x-2">
+                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-700">{rule}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500 text-sm">No house rules specified</p>
+              )}
             </div>
 
             {/* Nearby Places */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4">Nearby Places</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {property.nearbyPlaces.map((place, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <span className="text-gray-700">{place.name}</span>
-                    <span className="text-blue-600 font-medium">{place.distance}</span>
-                  </div>
-                ))}
-              </div>
+              {property.nearbyPlaces.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {property.nearbyPlaces.map((place, index) => (
+                    <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <span className="text-gray-700">{typeof place === 'string' ? place : place.name}</span>
+                      <span className="text-blue-600 font-medium">{typeof place === 'string' ? 'Nearby' : place.distance}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">No nearby places specified</p>
+              )}
             </div>
           </div>
 

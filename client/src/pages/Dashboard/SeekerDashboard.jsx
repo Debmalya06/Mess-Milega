@@ -135,41 +135,119 @@ const DUMMY_INQUIRIES = [
 const DUMMY_PROPERTIES = [
   {
     id: "demo-new-1",
-    title: "Newly Listed: Modern Co-Living Space",
-    address: { city: "Marathahalli, Bangalore", fullAddress: "Near Innovative Multiplex" },
+    name: "Newly Listed: Modern Co-Living Space",
+    address: "Near Innovative Multiplex",
+    city: "Marathahalli, Bangalore",
+    state: "Karnataka",
     monthlyRent: 13500,
-    images: ["/placeholder.svg?height=200&width=300"],
+    securityDeposit: 25000,
+    imageUrls: ["/placeholder.svg?height=200&width=300"],
     averageRating: 4.7,
     totalReviews: 15,
     propertyType: "PG",
     roomType: "SHARED",
-    amenities: ["WiFi", "AC", "Meals", "Laundry"],
+    genderPreference: "ANY",
+    wifi: true,
+    ac: true,
+    meals: true,
+    laundry: true,
+    availableRooms: 5,
+    totalRooms: 10,
   },
   {
     id: "demo-new-2",
-    title: "Premium PG for Working Professionals",
-    address: { city: "Sarjapur Road, Bangalore", fullAddress: "Near Wipro Campus" },
+    name: "Premium PG for Working Professionals",
+    address: "Near Wipro Campus",
+    city: "Sarjapur Road, Bangalore",
+    state: "Karnataka",
     monthlyRent: 16000,
-    images: ["/placeholder.svg?height=200&width=300"],
+    securityDeposit: 30000,
+    imageUrls: ["/placeholder.svg?height=200&width=300"],
     averageRating: 4.8,
     totalReviews: 22,
     propertyType: "PG",
     roomType: "SINGLE",
-    amenities: ["WiFi", "AC", "Gym", "Power Backup"],
+    genderPreference: "MALE",
+    wifi: true,
+    ac: true,
+    gym: true,
+    powerBackup: true,
+    availableRooms: 3,
+    totalRooms: 8,
   },
   {
     id: "demo-new-3",
-    title: "Affordable Mess near College",
-    address: { city: "BTM Layout, Bangalore", fullAddress: "Near Christ University" },
+    name: "Affordable Mess near College",
+    address: "Near Christ University",
+    city: "BTM Layout, Bangalore",
+    state: "Karnataka",
     monthlyRent: 8500,
-    images: ["/placeholder.svg?height=200&width=300"],
+    securityDeposit: 15000,
+    imageUrls: ["/placeholder.svg?height=200&width=300"],
     averageRating: 4.3,
     totalReviews: 45,
     propertyType: "MESS",
     roomType: "SHARED",
-    amenities: ["Meals", "WiFi", "Laundry"],
+    genderPreference: "ANY",
+    meals: true,
+    wifi: true,
+    laundry: true,
+    availableRooms: 10,
+    totalRooms: 20,
   },
 ]
+
+// Helper function to get amenities array from property
+const getAmenitiesFromProperty = (property) => {
+  const amenities = []
+  if (property.wifi) amenities.push("WiFi")
+  if (property.ac) amenities.push("AC")
+  if (property.meals) amenities.push("Meals")
+  if (property.laundry) amenities.push("Laundry")
+  if (property.parking) amenities.push("Parking")
+  if (property.gym) amenities.push("Gym")
+  if (property.tv) amenities.push("TV")
+  if (property.security) amenities.push("Security")
+  if (property.powerBackup) amenities.push("Power Backup")
+  if (property.housekeeping) amenities.push("Housekeeping")
+  return amenities
+}
+
+// Helper function to get property title (handles both 'name' and 'title' fields)
+const getPropertyTitle = (property) => {
+  return property.name || property.title || "Property"
+}
+
+// Helper function to get property image
+const getPropertyImage = (property, placeholder = "/placeholder.svg?height=150&width=300") => {
+  if (property.imageUrls && property.imageUrls.length > 0) {
+    return property.imageUrls[0]
+  }
+  if (property.images && property.images.length > 0) {
+    return property.images[0]
+  }
+  return placeholder
+}
+
+// Helper function to get property location
+const getPropertyLocation = (property) => {
+  if (property.city && property.state) {
+    return `${property.city}, ${property.state}`
+  }
+  if (property.city) {
+    return property.city
+  }
+  if (property.address?.city) {
+    return property.address.city
+  }
+  if (property.address?.fullAddress) {
+    return property.address.fullAddress
+  }
+  if (typeof property.address === 'string') {
+    return property.address
+  }
+  return "Location not available"
+}
 
 const Dashboard = () => {
   const { user } = useAuth()
@@ -838,64 +916,93 @@ const Dashboard = () => {
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {newProperties.map((property) => (
-                          <div key={property.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-                            <img
-                              src={property.images?.[0] || "/placeholder.svg?height=150&width=300"}
-                              alt={property.title}
-                              className="w-full h-36 object-cover"
-                            />
-                            <div className="p-4">
-                              <h4 className="font-semibold text-gray-900 mb-1 truncate">{property.title}</h4>
-                              <div className="flex items-center text-gray-600 text-sm mb-2">
-                                <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
-                                <span className="truncate">{property.address?.city || property.address?.fullAddress || "Location"}</span>
-                              </div>
-                              <div className="flex justify-between items-center mb-2">
-                                <div className="flex items-center">
-                                  <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
-                                  <span className="text-sm text-gray-600">
-                                    {property.averageRating?.toFixed(1) || "New"} ({property.totalReviews || 0})
+                        {newProperties.map((property) => {
+                          const amenities = getAmenitiesFromProperty(property)
+                          return (
+                            <div key={property.id || property._id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                              <img
+                                src={getPropertyImage(property)}
+                                alt={getPropertyTitle(property)}
+                                className="w-full h-36 object-cover"
+                              />
+                              <div className="p-4">
+                                <h4 className="font-semibold text-gray-900 mb-1 truncate">{getPropertyTitle(property)}</h4>
+                                <div className="flex items-center text-gray-600 text-sm mb-2">
+                                  <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
+                                  <span className="truncate">{getPropertyLocation(property)}</span>
+                                </div>
+                                <div className="flex justify-between items-center mb-2">
+                                  <div className="flex items-center">
+                                    <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
+                                    <span className="text-sm text-gray-600">
+                                      {property.averageRating > 0 ? property.averageRating.toFixed(1) : "New"} ({property.totalReviews || 0})
+                                    </span>
+                                  </div>
+                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                    {property.propertyType || "PG"}
                                   </span>
                                 </div>
-                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                  {property.propertyType || "PG"}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <div className="text-lg font-bold text-blue-600">
-                                  ₹{(property.monthlyRent || 0).toLocaleString()}/mo
-                                </div>
-                                <div className="flex space-x-2">
-                                  <Link
-                                    to={`/property/${property.id}`}
-                                    className="bg-blue-600 text-white py-1.5 px-3 rounded-lg text-sm hover:bg-blue-700"
-                                  >
-                                    View
-                                  </Link>
-                                  <Link
-                                    to={`/booking?propertyId=${property.id}`}
-                                    className="border border-blue-600 text-blue-600 py-1.5 px-3 rounded-lg text-sm hover:bg-blue-50"
-                                  >
-                                    Book
-                                  </Link>
-                                </div>
-                              </div>
-                              {property.amenities && property.amenities.length > 0 && (
-                                <div className="mt-2 flex flex-wrap gap-1">
-                                  {property.amenities.slice(0, 3).map((amenity, idx) => (
-                                    <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                                      {amenity}
+                                
+                                {/* Room & Gender Info */}
+                                <div className="flex items-center gap-2 mb-2 text-xs">
+                                  {property.roomType && (
+                                    <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
+                                      {property.roomType}
                                     </span>
-                                  ))}
-                                  {property.amenities.length > 3 && (
-                                    <span className="text-xs text-gray-500">+{property.amenities.length - 3} more</span>
+                                  )}
+                                  {property.genderPreference && property.genderPreference !== "ANY" && (
+                                    <span className={`px-2 py-0.5 rounded ${
+                                      property.genderPreference === "MALE" ? "bg-blue-100 text-blue-700" :
+                                      property.genderPreference === "FEMALE" ? "bg-pink-100 text-pink-700" :
+                                      "bg-gray-100 text-gray-700"
+                                    }`}>
+                                      {property.genderPreference}
+                                    </span>
+                                  )}
+                                  {property.availableRooms !== undefined && (
+                                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                                      {property.availableRooms} rooms available
+                                    </span>
                                   )}
                                 </div>
-                              )}
+
+                                <div className="flex items-center justify-between">
+                                  <div className="text-lg font-bold text-blue-600">
+                                    ₹{(property.monthlyRent || 0).toLocaleString()}/mo
+                                  </div>
+                                  <div className="flex space-x-2">
+                                    <Link
+                                      to={`/property/${property.id || property._id}`}
+                                      className="bg-blue-600 text-white py-1.5 px-3 rounded-lg text-sm hover:bg-blue-700"
+                                    >
+                                      View
+                                    </Link>
+                                    <Link
+                                      to={`/booking?propertyId=${property.id || property._id}`}
+                                      className="border border-blue-600 text-blue-600 py-1.5 px-3 rounded-lg text-sm hover:bg-blue-50"
+                                    >
+                                      Book
+                                    </Link>
+                                  </div>
+                                </div>
+                                
+                                {/* Amenities */}
+                                {amenities.length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-1">
+                                    {amenities.slice(0, 4).map((amenity, idx) => (
+                                      <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                                        {amenity}
+                                      </span>
+                                    ))}
+                                    {amenities.length > 4 && (
+                                      <span className="text-xs text-gray-500">+{amenities.length - 4} more</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     )}
                   </div>
@@ -1263,18 +1370,18 @@ const Dashboard = () => {
                 <div className="space-y-3">
                   {newProperties.slice(0, 3).map((property) => (
                     <Link
-                      key={property.id}
-                      to={`/property/${property.id}`}
+                      key={property.id || property._id}
+                      to={`/property/${property.id || property._id}`}
                       className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg"
                     >
                       <img
-                        src={property.images?.[0] || "/placeholder.svg?height=50&width=50"}
-                        alt={property.title}
+                        src={getPropertyImage(property, "/placeholder.svg?height=50&width=50")}
+                        alt={getPropertyTitle(property)}
                         className="w-12 h-12 object-cover rounded-lg"
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{property.title}</p>
-                        <p className="text-xs text-gray-500">₹{(property.monthlyRent || 0).toLocaleString()}/mo</p>
+                        <p className="text-sm font-medium text-gray-900 truncate">{getPropertyTitle(property)}</p>
+                        <p className="text-xs text-gray-500">₹{(property.monthlyRent || 0).toLocaleString()}/mo • {property.city || getPropertyLocation(property)}</p>
                       </div>
                       <ChevronRight className="h-4 w-4 text-gray-400" />
                     </Link>
