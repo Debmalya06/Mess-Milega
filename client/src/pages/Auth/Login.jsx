@@ -31,7 +31,12 @@ const Login = () => {
       const result = await login(formData.email, formData.password)
       if (result.success) {
         toast.success("Login successful!")
-        navigate("/dashboard")
+        // Redirect based on user role
+        if (result.role === "PG_OWNER") {
+          navigate("/owner-dashboard")
+        } else {
+          navigate("/dashboard")
+        }
       } else {
         toast.error(result.error)
       }

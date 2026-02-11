@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect } from "react"
-import io from "socket.io-client"
+// import io from "socket.io-client"  // Disabled - Socket.IO server not implemented yet
 import { useAuth } from "./AuthContext"
 
 const ChatContext = createContext()
@@ -21,23 +21,15 @@ export const ChatProvider = ({ children }) => {
   const [onlineUsers, setOnlineUsers] = useState([])
   const { user } = useAuth()
 
+  // Socket.IO connection disabled - backend Socket.IO server not implemented yet
+  // To enable real-time chat, you need to either:
+  // 1. Add a separate Node.js Socket.IO server
+  // 2. Add Spring WebSocket support to the backend
   useEffect(() => {
-    if (user) {
-      const newSocket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:8080")
-
-      newSocket.emit("join", user.id)
-
-      newSocket.on("message", (message) => {
-        setMessages((prev) => [...prev, message])
-      })
-
-      newSocket.on("onlineUsers", (users) => {
-        setOnlineUsers(users)
-      })
-
-      setSocket(newSocket)
-
-      return () => newSocket.close()
+    if (user && import.meta.env.VITE_SOCKET_URL) {
+      // Only connect if VITE_SOCKET_URL is explicitly set
+      // This prevents connection attempts to non-existent Socket.IO server
+      console.log("Chat: Socket.IO server URL not configured. Real-time chat disabled.")
     }
   }, [user])
 

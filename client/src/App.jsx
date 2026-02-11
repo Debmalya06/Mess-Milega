@@ -13,6 +13,9 @@ import Dashboard from "./pages/Dashboard/Dashboard"
 import OwnerDashboard from "./pages/Dashboard/OwnerDashboard"
 import Chat from "./pages/Chat"
 import Booking from "./pages/Booking"
+import BookingDetails from "./pages/BookingDetails"
+import Preferences from "./pages/Preferences"
+import InquiryDetails from "./pages/InquiryDetails"
 import Profile from "./pages/Profile"
 import VirtualTour from "./pages/VirtualTour"
 import "./App.css"
@@ -39,6 +42,9 @@ function App() {
                 <Route path="/owner-dashboard" element={<OwnerDashboard />} />
                 <Route path="/chat" element={<Chat />} />
                 <Route path="/booking/:id" element={<Booking />} />
+                <Route path="/booking-details/:bookingId" element={<BookingDetails />} />
+                <Route path="/preferences" element={<Preferences />} />
+                <Route path="/inquiry/:inquiryId" element={<InquiryDetails />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/virtual-tour/:id" element={<VirtualTour />} />
               </Routes>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "../../contexts/AuthContext"
 import { Link } from "react-router-dom"
 import {
@@ -16,106 +16,270 @@ import {
   Star,
   TrendingUp,
   BarChart3,
+  RefreshCw,
+  AlertCircle,
+  Loader2,
+  Check,
+  X,
+  ChevronRight,
 } from "lucide-react"
+import { ownerService, propertyService, bookingService, paymentService } from "../../services/api"
 
 const OwnerDashboard = () => {
   const { user } = useAuth()
+  
+  // Loading and error states
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [refreshing, setRefreshing] = useState(false)
+  
   const [activeTab, setActiveTab] = useState("properties")
+  
+  // Dashboard data
   const [stats, setStats] = useState({
-    totalProperties: 5,
-    occupiedRooms: 12,
-    totalRooms: 15,
-    monthlyRevenue: 180000,
-    pendingBookings: 3,
+    totalProperties: 0,
+    activeProperties: 0,
+    totalRooms: 0,
+    occupiedRooms: 0,
+    monthlyRevenue: 0,
+    pendingBookings: 0,
+    pendingInquiries: 0,
+    pendingVisits: 0,
+    averageRating: 0,
   })
 
-  // Mock data
-  const [properties] = useState([
-    {
-      id: 1,
-      title: "Comfortable PG in Koramangala",
-      location: "Koramangala, Bangalore",
-      type: "pg",
-      totalRooms: 8,
-      occupiedRooms: 6,
-      rent: 12000,
-      rating: 4.5,
-      reviews: 28,
-      image: "/placeholder.svg?height=100&width=150",
-      status: "active",
-    },
-    {
-      id: 2,
-      title: "Ladies PG near Metro Station",
-      location: "Indiranagar, Bangalore",
-      type: "pg",
-      totalRooms: 4,
-      occupiedRooms: 4,
-      rent: 13000,
-      rating: 4.3,
-      reviews: 15,
-      image: "/placeholder.svg?height=100&width=150",
-      status: "active",
-    },
-    {
-      id: 3,
-      title: "Shared Accommodation for IT Professionals",
-      location: "Whitefield, Bangalore",
-      type: "pg",
-      totalRooms: 3,
-      occupiedRooms: 2,
-      rent: 15000,
-      rating: 4.7,
-      reviews: 22,
-      image: "/placeholder.svg?height=100&width=150",
-      status: "active",
-    },
-  ])
+  // Tab-specific data
+  const [properties, setProperties] = useState([])
+  const [bookings, setBookings] = useState([])
+  const [pendingBookings, setPendingBookings] = useState([])
+  const [inquiries, setInquiries] = useState([])
+  const [visits, setVisits] = useState([])
+  const [recentActivity, setRecentActivity] = useState([])
 
-  const [bookings] = useState([
-    {
-      id: 1,
-      tenant: {
-        name: "Amit Kumar",
-        phone: "+91 9876543210",
-        email: "amit@example.com",
-      },
-      property: "Comfortable PG in Koramangala",
-      moveInDate: "2024-02-01",
-      rent: 12000,
-      status: "pending",
-      documents: ["id_proof", "address_proof", "photo"],
-    },
-    {
-      id: 2,
-      tenant: {
-        name: "Priya Sharma",
-        phone: "+91 9876543211",
-        email: "priya@example.com",
-      },
-      property: "Ladies PG near Metro Station",
-      moveInDate: "2024-01-15",
-      rent: 13000,
-      status: "confirmed",
-      documents: ["id_proof", "address_proof", "photo"],
-    },
-  ])
+  // Action loading states
+  const [actionLoading, setActionLoading] = useState({})
 
-  const occupancyRate = (stats.occupiedRooms / stats.totalRooms) * 100
+  // Fetch dashboard summary
+  const fetchDashboard = useCallback(async () => {
+    try {
+      setError(null)
+      const response = await ownerService.getDashboard()
+      const data = response.data
+      
+      // Update stats from dashboard response
+      setStats({
+        totalProperties: data.propertyStats?.totalProperties || 0,
+        activeProperties: data.propertyStats?.activeProperties || 0,
+        totalRooms: data.propertyStats?.totalRooms || 0,
+        occupiedRooms: data.propertyStats?.occupiedRooms || 0,
+        monthlyRevenue: data.paymentStats?.thisMonthRevenue || 0,
+        pendingBookings: data.pendingBookings || 0,
+        pendingInquiries: data.pendingInquiries || 0,
+        pendingVisits: data.pendingVisitRequests || 0,
+        averageRating: data.averageRating || 0,
+      })
+      
+      // Set pending bookings list
+      setPendingBookings(data.pendingBookingsList || [])
+      
+      // Set today's visits
+      setVisits(data.todaysVisits || [])
+      
+      // Build recent activity from various sources
+      const activities = []
+      if (data.pendingBookingsList) {
+        data.pendingBookingsList.slice(0, 3).forEach(booking => {
+          activities.push({
+            type: 'booking',
+            message: `New booking request from ${booking.seekerName || 'Seeker'}`,
+            time: booking.createdAt,
+            color: 'green'
+          })
+        })
+      }
+      if (data.recentReviews) {
+        data.recentReviews.slice(0, 3).forEach(review => {
+          activities.push({
+            type: 'review',
+            message: `New review for ${review.propertyTitle || 'property'}`,
+            time: review.createdAt,
+            color: 'yellow'
+          })
+        })
+      }
+      setRecentActivity(activities.slice(0, 5))
+      
+    } catch (err) {
+      console.error("Error fetching dashboard:", err)
+      setError("Failed to load dashboard data")
+    }
+  }, [])
+
+  // Fetch properties
+  const fetchProperties = useCallback(async () => {
+    try {
+      const response = await propertyService.getMyProperties()
+      setProperties(response.data || [])
+    } catch (err) {
+      console.error("Error fetching properties:", err)
+    }
+  }, [])
+
+  // Fetch bookings
+  const fetchBookings = useCallback(async () => {
+    try {
+      const response = await bookingService.getOwnerBookingRequests()
+      setBookings(response.data || [])
+    } catch (err) {
+      console.error("Error fetching bookings:", err)
+    }
+  }, [])
+
+  // Fetch inquiries
+  const fetchInquiries = useCallback(async () => {
+    try {
+      const response = await ownerService.getInquiries()
+      setInquiries(response.data || [])
+    } catch (err) {
+      console.error("Error fetching inquiries:", err)
+    }
+  }, [])
+
+  // Initial data load
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setLoading(true)
+      await Promise.all([
+        fetchDashboard(),
+        fetchProperties(),
+        fetchBookings(),
+      ])
+      setLoading(false)
+    }
+    loadInitialData()
+  }, [fetchDashboard, fetchProperties, fetchBookings])
+
+  // Fetch tab-specific data
+  useEffect(() => {
+    if (activeTab === "bookings") {
+      fetchBookings()
+    } else if (activeTab === "inquiries") {
+      fetchInquiries()
+    }
+  }, [activeTab, fetchBookings, fetchInquiries])
+
+  // Refresh all data
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await Promise.all([
+      fetchDashboard(),
+      fetchProperties(),
+      fetchBookings(),
+    ])
+    setRefreshing(false)
+  }
+
+  // Confirm booking
+  const handleConfirmBooking = async (bookingId) => {
+    setActionLoading(prev => ({ ...prev, [`confirm-${bookingId}`]: true }))
+    try {
+      await bookingService.confirmBooking(bookingId)
+      fetchBookings()
+      fetchDashboard()
+    } catch (err) {
+      console.error("Error confirming booking:", err)
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`confirm-${bookingId}`]: false }))
+    }
+  }
+
+  // Reject booking
+  const handleRejectBooking = async (bookingId) => {
+    const reason = prompt("Please provide a reason for rejection:")
+    if (!reason) return
+    
+    setActionLoading(prev => ({ ...prev, [`reject-${bookingId}`]: true }))
+    try {
+      await bookingService.rejectBooking(bookingId, reason)
+      fetchBookings()
+      fetchDashboard()
+    } catch (err) {
+      console.error("Error rejecting booking:", err)
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`reject-${bookingId}`]: false }))
+    }
+  }
+
+  // Delete property
+  const handleDeleteProperty = async (propertyId) => {
+    if (!window.confirm("Are you sure you want to delete this property?")) return
+    
+    setActionLoading(prev => ({ ...prev, [`delete-${propertyId}`]: true }))
+    try {
+      await propertyService.deleteProperty(propertyId)
+      fetchProperties()
+      fetchDashboard()
+    } catch (err) {
+      console.error("Error deleting property:", err)
+      alert("Failed to delete property. " + (err.response?.data?.message || ""))
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`delete-${propertyId}`]: false }))
+    }
+  }
+
+  const occupancyRate = stats.totalRooms > 0 
+    ? (stats.occupiedRooms / stats.totalRooms) * 100 
+    : 0
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case "active":
+    switch (status?.toUpperCase()) {
+      case "ACTIVE":
         return "bg-green-100 text-green-800"
-      case "pending":
+      case "PENDING":
         return "bg-yellow-100 text-yellow-800"
-      case "confirmed":
+      case "CONFIRMED":
         return "bg-blue-100 text-blue-800"
-      case "inactive":
-        return "bg-gray-100 text-gray-800"
+      case "INACTIVE":
+      case "REJECTED":
+      case "CANCELLED":
+        return "bg-red-100 text-red-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A"
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric"
+    })
+  }
+
+  const formatTimeAgo = (dateString) => {
+    if (!dateString) return ""
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+    
+    if (diffMins < 60) return `${diffMins} minutes ago`
+    if (diffHours < 24) return `${diffHours} hours ago`
+    return `${diffDays} days ago`
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading your dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -125,16 +289,37 @@ const OwnerDashboard = () => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
-            <p className="text-gray-600">Manage your properties and bookings</p>
+            <p className="text-gray-600">Welcome back, {user?.fullName || user?.name || "Owner"}! Manage your properties and bookings</p>
           </div>
-          <Link
-            to="/add-property"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Property</span>
-          </Link>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              <span>Refresh</span>
+            </button>
+            <Link
+              to="/add-property"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Property</span>
+            </Link>
+          </div>
         </div>
+
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <p className="text-red-700">{error}</p>
+            <button onClick={handleRefresh} className="ml-auto text-red-600 hover:text-red-800">
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
@@ -146,6 +331,7 @@ const OwnerDashboard = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Properties</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.totalProperties}</p>
+                <p className="text-xs text-gray-500">{stats.activeProperties} active</p>
               </div>
             </div>
           </div>
@@ -158,6 +344,7 @@ const OwnerDashboard = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Occupancy</p>
                 <p className="text-2xl font-bold text-gray-900">{occupancyRate.toFixed(0)}%</p>
+                <p className="text-xs text-gray-500">{stats.occupiedRooms}/{stats.totalRooms} rooms</p>
               </div>
             </div>
           </div>
@@ -169,7 +356,9 @@ const OwnerDashboard = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">₹{(stats.monthlyRevenue / 1000).toFixed(0)}K</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  ₹{stats.monthlyRevenue >= 1000 ? `${(stats.monthlyRevenue / 1000).toFixed(0)}K` : stats.monthlyRevenue}
+                </p>
               </div>
             </div>
           </div>
@@ -189,11 +378,11 @@ const OwnerDashboard = () => {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center">
               <div className="p-3 bg-red-100 rounded-full">
-                <TrendingUp className="h-6 w-6 text-red-600" />
+                <Star className="h-6 w-6 text-red-600" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Avg Rating</p>
-                <p className="text-2xl font-bold text-gray-900">4.5</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.averageRating > 0 ? stats.averageRating.toFixed(1) : "N/A"}</p>
               </div>
             </div>
           </div>
@@ -206,10 +395,11 @@ const OwnerDashboard = () => {
             {/* Tab Navigation */}
             <div className="bg-white rounded-lg shadow-md mb-6">
               <div className="border-b border-gray-200">
-                <nav className="flex space-x-8 px-6">
+                <nav className="flex space-x-8 px-6 overflow-x-auto">
                   {[
                     { id: "properties", label: "My Properties", icon: <Home className="h-4 w-4" /> },
                     { id: "bookings", label: "Bookings", icon: <Calendar className="h-4 w-4" /> },
+                    { id: "inquiries", label: "Inquiries", icon: <MessageCircle className="h-4 w-4" /> },
                     { id: "analytics", label: "Analytics", icon: <BarChart3 className="h-4 w-4" /> },
                   ].map((tab) => (
                     <button
@@ -232,109 +422,234 @@ const OwnerDashboard = () => {
                 {/* Properties Tab */}
                 {activeTab === "properties" && (
                   <div className="space-y-4">
-                    {properties.map((property) => (
-                      <div key={property.id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center space-x-4">
-                          <img
-                            src={property.image || "/placeholder.svg"}
-                            alt={property.title}
-                            className="w-20 h-16 object-cover rounded-lg"
-                          />
-                          <div className="flex-1">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h3 className="font-semibold text-gray-900">{property.title}</h3>
-                                <p className="text-sm text-gray-600">{property.location}</p>
-                                <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                                  <span>
-                                    Occupancy: {property.occupiedRooms}/{property.totalRooms}
-                                  </span>
-                                  <div className="flex items-center">
-                                    <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
+                    {properties.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Home className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Properties Yet</h3>
+                        <p className="text-gray-600 mb-4">Add your first property to start receiving bookings</p>
+                        <Link
+                          to="/add-property"
+                          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Property
+                        </Link>
+                      </div>
+                    ) : (
+                      properties.map((property) => (
+                        <div key={property.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <div className="flex items-center space-x-4">
+                            <img
+                              src={property.images?.[0] || property.image || "/placeholder.svg?height=100&width=150"}
+                              alt={property.title}
+                              className="w-20 h-16 object-cover rounded-lg"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h3 className="font-semibold text-gray-900 truncate">{property.title}</h3>
+                                  <p className="text-sm text-gray-600 truncate">
+                                    {property.address?.fullAddress || property.location || `${property.address?.city || ""}`}
+                                  </p>
+                                  <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
                                     <span>
-                                      {property.rating} ({property.reviews} reviews)
+                                      Rooms: {property.totalRooms || 0} ({property.availableRooms || 0} available)
                                     </span>
+                                    <div className="flex items-center">
+                                      <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
+                                      <span>
+                                        {property.averageRating?.toFixed(1) || "New"} ({property.totalReviews || 0} reviews)
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                              <div className="text-right">
-                                <span
-                                  className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(property.status)}`}
-                                >
-                                  {property.status.charAt(0).toUpperCase() + property.status.slice(1)}
-                                </span>
-                                <div className="mt-2 text-lg font-bold text-blue-600">
-                                  ₹{property.rent.toLocaleString()}/month
+                                <div className="text-right">
+                                  <span
+                                    className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(property.status)}`}
+                                  >
+                                    {property.status?.charAt(0).toUpperCase() + property.status?.slice(1).toLowerCase() || "Active"}
+                                  </span>
+                                  <div className="mt-2 text-lg font-bold text-blue-600">
+                                    ₹{(property.monthlyRent || property.rent || 0).toLocaleString()}/month
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
+                          <div className="mt-4 flex space-x-3">
+                            <Link
+                              to={`/property/${property.id}`}
+                              className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            >
+                              <Eye className="h-4 w-4" />
+                              <span>View</span>
+                            </Link>
+                            <Link
+                              to={`/edit-property/${property.id}`}
+                              className="flex items-center space-x-1 text-green-600 hover:text-green-800 text-sm font-medium"
+                            >
+                              <Edit className="h-4 w-4" />
+                              <span>Edit</span>
+                            </Link>
+                            <button 
+                              onClick={() => handleDeleteProperty(property.id)}
+                              disabled={actionLoading[`delete-${property.id}`]}
+                              className="flex items-center space-x-1 text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
+                            >
+                              {actionLoading[`delete-${property.id}`] ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                              <span>Delete</span>
+                            </button>
+                          </div>
                         </div>
-                        <div className="mt-4 flex space-x-3">
-                          <Link
-                            to={`/property/${property.id}`}
-                            className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm font-medium"
-                          >
-                            <Eye className="h-4 w-4" />
-                            <span>View</span>
-                          </Link>
-                          <button className="flex items-center space-x-1 text-green-600 hover:text-green-800 text-sm font-medium">
-                            <Edit className="h-4 w-4" />
-                            <span>Edit</span>
-                          </button>
-                          <button className="flex items-center space-x-1 text-red-600 hover:text-red-800 text-sm font-medium">
-                            <Trash2 className="h-4 w-4" />
-                            <span>Delete</span>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 )}
 
                 {/* Bookings Tab */}
                 {activeTab === "bookings" && (
                   <div className="space-y-4">
-                    {bookings.map((booking) => (
-                      <div key={booking.id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="font-semibold text-gray-900">{booking.tenant.name}</h3>
-                            <p className="text-sm text-gray-600">{booking.property}</p>
-                            <div className="mt-2 text-sm text-gray-600">
-                              <p>Move-in: {new Date(booking.moveInDate).toLocaleDateString()}</p>
-                              <p>Contact: {booking.tenant.phone}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}
-                            >
-                              {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                            </span>
-                            <div className="mt-2 text-lg font-bold text-blue-600">
-                              ₹{booking.rent.toLocaleString()}/month
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex space-x-3">
-                          <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                            View Documents
-                          </button>
-                          <Link to="/chat" className="text-green-600 hover:text-green-800 text-sm font-medium">
-                            Contact Tenant
-                          </Link>
-                          {booking.status === "pending" && (
-                            <>
-                              <button className="text-green-600 hover:text-green-800 text-sm font-medium">
-                                Approve
-                              </button>
-                              <button className="text-red-600 hover:text-red-800 text-sm font-medium">Reject</button>
-                            </>
-                          )}
-                        </div>
+                    {bookings.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Booking Requests</h3>
+                        <p className="text-gray-600">You'll see booking requests here when seekers book your properties</p>
                       </div>
-                    ))}
+                    ) : (
+                      bookings.map((booking) => (
+                        <div key={booking.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{booking.seekerName || "Seeker"}</h3>
+                              <p className="text-sm text-gray-600">{booking.propertyTitle || "Property"}</p>
+                              <div className="mt-2 text-sm text-gray-600 space-y-1">
+                                <p>Check-in: {formatDate(booking.checkInDate)}</p>
+                                <p>Duration: {booking.numberOfMonths || 1} month(s)</p>
+                                {booking.seekerPhone && <p>Contact: {booking.seekerPhone}</p>}
+                                {booking.seekerEmail && <p>Email: {booking.seekerEmail}</p>}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}
+                              >
+                                {booking.status?.replace("_", " ")}
+                              </span>
+                              <div className="mt-2 text-lg font-bold text-blue-600">
+                                ₹{(booking.monthlyRent || 0).toLocaleString()}/month
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-3">
+                            <Link
+                              to={`/booking-details/${booking.id}`}
+                              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            >
+                              View Details
+                            </Link>
+                            <Link to="/chat" className="text-green-600 hover:text-green-800 text-sm font-medium">
+                              Contact Seeker
+                            </Link>
+                            {booking.status === "PENDING" && (
+                              <>
+                                <button 
+                                  onClick={() => handleConfirmBooking(booking.id)}
+                                  disabled={actionLoading[`confirm-${booking.id}`]}
+                                  className="flex items-center text-green-600 hover:text-green-800 text-sm font-medium disabled:opacity-50"
+                                >
+                                  {actionLoading[`confirm-${booking.id}`] ? (
+                                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                  ) : (
+                                    <Check className="h-4 w-4 mr-1" />
+                                  )}
+                                  Approve
+                                </button>
+                                <button 
+                                  onClick={() => handleRejectBooking(booking.id)}
+                                  disabled={actionLoading[`reject-${booking.id}`]}
+                                  className="flex items-center text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
+                                >
+                                  {actionLoading[`reject-${booking.id}`] ? (
+                                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                  ) : (
+                                    <X className="h-4 w-4 mr-1" />
+                                  )}
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {/* Inquiries Tab */}
+                {activeTab === "inquiries" && (
+                  <div className="space-y-4">
+                    {inquiries.length === 0 ? (
+                      <div className="text-center py-8">
+                        <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Inquiries Yet</h3>
+                        <p className="text-gray-600">You'll receive inquiries when seekers have questions about your properties</p>
+                      </div>
+                    ) : (
+                      inquiries.map((inquiry) => (
+                        <div key={inquiry.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-900">
+                                {inquiry.subject || "Inquiry"}
+                              </h3>
+                              <p className="text-sm text-gray-600 mt-1">
+                                From: {inquiry.seekerName || "Seeker"} • {inquiry.propertyTitle || "Property"}
+                              </p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {!inquiry.read && (
+                                <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                              )}
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                inquiry.status === "OPEN" ? "bg-green-100 text-green-800" :
+                                inquiry.status === "CLOSED" ? "bg-gray-100 text-gray-800" :
+                                "bg-yellow-100 text-yellow-800"
+                              }`}>
+                                {inquiry.status}
+                              </span>
+                            </div>
+                          </div>
+
+                          <p className="mt-2 text-gray-700 text-sm line-clamp-2">{inquiry.message}</p>
+
+                          <div className="mt-3 flex items-center justify-between text-sm text-gray-500">
+                            <span>{formatDate(inquiry.createdAt)}</span>
+                            <span>{inquiry.replies?.length || 0} replies</span>
+                          </div>
+
+                          <div className="mt-4 flex gap-3">
+                            <Link
+                              to={`/inquiry/${inquiry.id}`}
+                              className="flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View Details
+                            </Link>
+                            <Link
+                              to={`/property/${inquiry.propertyId}`}
+                              className="flex items-center text-green-600 hover:text-green-800 text-sm font-medium"
+                            >
+                              <Home className="h-4 w-4 mr-1" />
+                              View Property
+                            </Link>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
 
@@ -357,30 +672,66 @@ const OwnerDashboard = () => {
             {/* Recent Activity */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
-              <div className="space-y-3">
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                  <div>
-                    <p className="text-sm text-gray-900">New booking request from Amit Kumar</p>
-                    <p className="text-xs text-gray-500">2 hours ago</p>
-                  </div>
+              {recentActivity.length === 0 ? (
+                <p className="text-gray-500 text-sm">No recent activity</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentActivity.map((activity, index) => (
+                    <div key={index} className="flex items-start space-x-3">
+                      <div className={`w-2 h-2 rounded-full mt-2 ${
+                        activity.color === 'green' ? 'bg-green-500' :
+                        activity.color === 'blue' ? 'bg-blue-500' :
+                        activity.color === 'yellow' ? 'bg-yellow-500' :
+                        'bg-gray-500'
+                      }`}></div>
+                      <div>
+                        <p className="text-sm text-gray-900">{activity.message}</p>
+                        <p className="text-xs text-gray-500">{formatTimeAgo(activity.time)}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                  <div>
-                    <p className="text-sm text-gray-900">Payment received from Priya Sharma</p>
-                    <p className="text-xs text-gray-500">1 day ago</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-                  <div>
-                    <p className="text-sm text-gray-900">New review posted for Koramangala PG</p>
-                    <p className="text-xs text-gray-500">2 days ago</p>
-                  </div>
+              )}
+            </div>
+
+            {/* Pending Actions */}
+            {(stats.pendingBookings > 0 || stats.pendingInquiries > 0 || stats.pendingVisits > 0) && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+                <h2 className="text-lg font-semibold text-orange-900 mb-4">Pending Actions</h2>
+                <div className="space-y-3">
+                  {stats.pendingBookings > 0 && (
+                    <button
+                      onClick={() => setActiveTab("bookings")}
+                      className="flex items-center justify-between w-full p-3 hover:bg-orange-100 rounded-lg"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Calendar className="h-5 w-5 text-orange-600" />
+                        <span className="text-sm text-gray-900">{stats.pendingBookings} pending booking(s)</span>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-400" />
+                    </button>
+                  )}
+                  {stats.pendingInquiries > 0 && (
+                    <button
+                      onClick={() => setActiveTab("inquiries")}
+                      className="flex items-center justify-between w-full p-3 hover:bg-orange-100 rounded-lg"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <MessageCircle className="h-5 w-5 text-orange-600" />
+                        <span className="text-sm text-gray-900">{stats.pendingInquiries} pending inquiry(ies)</span>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-400" />
+                    </button>
+                  )}
+                  {stats.pendingVisits > 0 && (
+                    <div className="flex items-center space-x-3 p-3">
+                      <Users className="h-5 w-5 text-orange-600" />
+                      <span className="text-sm text-gray-900">{stats.pendingVisits} pending visit request(s)</span>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Quick Actions */}
             <div className="bg-white rounded-lg shadow-md p-6">
@@ -407,15 +758,21 @@ const OwnerDashboard = () => {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span>Revenue</span>
-                  <span className="font-bold">₹{(stats.monthlyRevenue / 1000).toFixed(0)}K</span>
+                  <span className="font-bold">
+                    ₹{stats.monthlyRevenue >= 1000 ? `${(stats.monthlyRevenue / 1000).toFixed(0)}K` : stats.monthlyRevenue}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Occupancy Rate</span>
                   <span className="font-bold">{occupancyRate.toFixed(0)}%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>New Bookings</span>
-                  <span className="font-bold">8</span>
+                  <span>Active Properties</span>
+                  <span className="font-bold">{stats.activeProperties}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Total Rooms</span>
+                  <span className="font-bold">{stats.totalRooms}</span>
                 </div>
               </div>
             </div>

@@ -3,6 +3,10 @@
 import { createContext, useContext, useState, useEffect } from "react"
 import axios from "axios"
 
+// Configure axios base URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
+axios.defaults.baseURL = API_BASE_URL
+
 const AuthContext = createContext()
 
 export const useAuth = () => {
@@ -16,15 +20,20 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   useEffect(() => {
-    const token = localStorage.getItem("token")
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
-      fetchUser()
-    } else {
-      setLoading(false)
+    const initAuth = async () => {
+      const token = localStorage.getItem("token")
+      if (token) {
+        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
+        await fetchUser()
+      } else {
+        setLoading(false)
+      }
+      setIsInitialized(true)
     }
+    initAuth()
   }, [])
 
   const fetchUser = async () => {
@@ -32,8 +41,12 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.get("/api/auth/me")
       setUser(response.data)
     } catch (error) {
-      localStorage.removeItem("token")
-      delete axios.defaults.headers.common["Authorization"]
+      console.log("Failed to fetch user:", error.response?.status)
+      // Only remove token on 401 (unauthorized), not on network errors
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token")
+        delete axios.defaults.headers.common["Authorization"]
+      }
     } finally {
       setLoading(false)
     }
@@ -42,13 +55,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await axios.post("/api/auth/login", { email, password })
-      const { accessToken, id, fullName, email: userEmail, role } = response.data
+      const { token, id, fullName, email: userEmail, role } = response.data
 
-      localStorage.setItem("token", accessToken)
-      axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`
+      localStorage.setItem("token", token)
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
       setUser({ id, fullName, email: userEmail, role })
 
-      return { success: true }
+      return { success: true, role }
     } catch (error) {
       return { success: false, error: error.response?.data?.message || "Login failed" }
     }
@@ -110,6 +123,8 @@ export const AuthProvider = ({ children }) => {
     resendOtp,
     logout,
     loading,
+    isInitialized,
+    isAuthenticated: !!user,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

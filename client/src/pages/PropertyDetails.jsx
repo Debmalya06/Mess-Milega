@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
-import axios from "axios"
 import {
   MapPin,
   Star,
@@ -19,24 +18,32 @@ import {
   Calendar,
   Shield,
   CheckCircle,
+  Loader2,
 } from "lucide-react"
 import ImageGallery from "react-image-gallery"
 import "react-image-gallery/styles/css/image-gallery.css"
 import toast from "react-hot-toast"
+import { propertyService, seekerService } from "../services/api"
+import ScheduleVisitModal from "../components/Property/ScheduleVisitModal"
+import SendInquiryModal from "../components/Property/SendInquiryModal"
 
 const PropertyDetails = () => {
   const { id } = useParams()
   const { user } = useAuth()
   const [property, setProperty] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [showContactModal, setShowContactModal] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteLoading, setFavoriteLoading] = useState(false)
+  
+  // Modal states
+  const [showScheduleVisitModal, setShowScheduleVisitModal] = useState(false)
+  const [showInquiryModal, setShowInquiryModal] = useState(false)
 
   // Fetch property data from backend API
   useEffect(() => {
     const fetchProperty = async () => {
       try {
-        const response = await axios.get(`/api/properties/${id}`)
+        const response = await propertyService.getPropertyById(id)
         const data = response.data
         
         // Map backend response to frontend format
@@ -44,27 +51,35 @@ const PropertyDetails = () => {
           id: data.id,
           title: data.title,
           description: data.description,
-          price: data.price,
-          location: `${data.address}, ${data.city}`,
-          type: data.propertyType?.toLowerCase(),
+          price: data.monthlyRent || data.price,
+          securityDeposit: data.securityDeposit,
+          location: `${data.address?.street || data.address || ""}, ${data.address?.city || data.city || ""}`,
+          city: data.address?.city || data.city,
+          type: data.propertyType?.toLowerCase() || "pg",
           rating: data.averageRating || 0,
           reviews: data.totalReviews || 0,
           images: data.images?.length > 0 ? data.images : ["/placeholder.svg?height=400&width=600"],
           amenities: data.amenities || [],
-          roomType: data.roomType?.toLowerCase(),
-          gender: data.genderPreference?.toLowerCase(),
-          availableRooms: data.availableRooms,
+          roomType: data.roomType?.toLowerCase() || "single",
+          gender: data.genderPreference?.toLowerCase() || "any",
+          availableRooms: data.availableRooms || 0,
           owner: {
+            id: data.ownerId,
             name: data.ownerName || "Property Owner",
             phone: data.ownerPhone || "",
             email: data.ownerEmail || "",
-            verified: true,
-            rating: 4.8,
+            verified: data.ownerVerified || true,
+            rating: data.ownerRating || 4.8,
           },
           rules: data.rules || [],
           nearbyPlaces: data.nearbyPlaces || [],
           coordinates: { lat: data.latitude || 0, lng: data.longitude || 0 },
         })
+        
+        // Check if property is favorited (only for logged-in seekers)
+        if (user && user.role !== "PG_OWNER") {
+          checkFavoriteStatus(id)
+        }
       } catch (error) {
         console.error("Error fetching property:", error)
         toast.error("Failed to load property details")
@@ -74,7 +89,17 @@ const PropertyDetails = () => {
     }
 
     fetchProperty()
-  }, [id])
+  }, [id, user])
+
+  const checkFavoriteStatus = async (propertyId) => {
+    try {
+      const response = await seekerService.checkFavorite(propertyId)
+      setIsFavorite(response.data.isFavorited)
+    } catch (error) {
+      // Silently fail - not critical
+      console.log("Could not check favorite status")
+    }
+  }
 
   const amenityIcons = {
     wifi: <Wifi className="h-5 w-5" />,
@@ -109,9 +134,28 @@ const PropertyDetails = () => {
     }
   }
 
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite)
-    toast.success(isFavorite ? "Removed from favorites" : "Added to favorites")
+  const toggleFavorite = async () => {
+    if (!user) {
+      toast.error("Please login to add favorites")
+      return
+    }
+    
+    if (user.role === "PG_OWNER") {
+      toast.error("Owners cannot add properties to favorites")
+      return
+    }
+    
+    setFavoriteLoading(true)
+    try {
+      const response = await seekerService.toggleFavorite(id)
+      setIsFavorite(response.data.isFavorited)
+      toast.success(response.data.message)
+    } catch (error) {
+      console.error("Error toggling favorite:", error)
+      toast.error("Failed to update favorites")
+    } finally {
+      setFavoriteLoading(false)
+    }
   }
 
   if (loading) {
@@ -170,11 +214,16 @@ const PropertyDetails = () => {
               </button>
               <button
                 onClick={toggleFavorite}
+                disabled={favoriteLoading}
                 className={`p-2 rounded-lg ${
                   isFavorite ? "text-red-600 bg-red-50" : "text-gray-600 hover:text-red-600 hover:bg-red-50"
-                }`}
+                } disabled:opacity-50`}
               >
-                <Heart className={`h-5 w-5 ${isFavorite ? "fill-current" : ""}`} />
+                {favoriteLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Heart className={`h-5 w-5 ${isFavorite ? "fill-current" : ""}`} />
+                )}
               </button>
             </div>
           </div>
@@ -350,19 +399,53 @@ const PropertyDetails = () => {
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
               <div className="space-y-2">
-                <button className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-lg flex items-center space-x-2">
-                  <Calendar className="h-4 w-4 text-gray-600" />
-                  <span>Schedule Visit</span>
-                </button>
-                <button className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-lg flex items-center space-x-2">
-                  <Shield className="h-4 w-4 text-gray-600" />
-                  <span>Report Property</span>
+                {user && user.role !== "PG_OWNER" && (
+                  <>
+                    <button
+                      onClick={() => setShowScheduleVisitModal(true)}
+                      className="w-full text-left px-4 py-3 hover:bg-blue-50 rounded-lg flex items-center space-x-3 transition-colors"
+                    >
+                      <Calendar className="h-5 w-5 text-blue-600" />
+                      <span className="text-gray-700">Schedule Visit</span>
+                    </button>
+                    <button
+                      onClick={() => setShowInquiryModal(true)}
+                      className="w-full text-left px-4 py-3 hover:bg-green-50 rounded-lg flex items-center space-x-3 transition-colors"
+                    >
+                      <MessageCircle className="h-5 w-5 text-green-600" />
+                      <span className="text-gray-700">Send Inquiry</span>
+                    </button>
+                  </>
+                )}
+                <button className="w-full text-left px-4 py-3 hover:bg-red-50 rounded-lg flex items-center space-x-3 transition-colors">
+                  <Shield className="h-5 w-5 text-red-600" />
+                  <span className="text-gray-700">Report Property</span>
                 </button>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Schedule Visit Modal */}
+      {showScheduleVisitModal && (
+        <ScheduleVisitModal
+          propertyId={property.id}
+          propertyTitle={property.title}
+          onClose={() => setShowScheduleVisitModal(false)}
+          onSuccess={() => toast.success("Visit scheduled!")}
+        />
+      )}
+
+      {/* Send Inquiry Modal */}
+      {showInquiryModal && (
+        <SendInquiryModal
+          propertyId={property.id}
+          propertyTitle={property.title}
+          onClose={() => setShowInquiryModal(false)}
+          onSuccess={() => toast.success("Inquiry sent!")}
+        />
+      )}
     </div>
   )
 }

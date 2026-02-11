@@ -24,6 +24,8 @@ import jakarta.validation.Valid;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.security.core.context.SecurityContextHolder;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -36,6 +38,40 @@ public class AuthController {
     private final EmailOtpService emailOtpService;
     private final EmailService emailService;
     private final UserService userService;
+
+    // ================== GET CURRENT USER ==================
+    
+    /**
+     * Get current authenticated user details
+     */
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.status(401).body(new MessageResponse("Not authenticated"));
+            }
+            
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            Optional<User> userOpt = userRepository.findById(userDetails.getId());
+            
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(new MessageResponse("User not found"));
+            }
+            
+            User user = userOpt.get();
+            return ResponseEntity.ok(Map.of(
+                "id", user.getId(),
+                "fullName", user.getFullName(),
+                "email", user.getEmail(),
+                "role", user.getRole().name(),
+                "phoneNumber", user.getPhoneNumber() != null ? user.getPhoneNumber() : "",
+                "verified", user.isVerified()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(new MessageResponse("Authentication failed"));
+        }
+    }
 
     // ================== REGISTRATION FLOW ==================
     
@@ -195,10 +231,15 @@ public class AuthController {
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
             String jwt = jwtUtils.generateJwtToken(authentication);
 
-            return ResponseEntity.ok(new JwtResponse(jwt,
+            return ResponseEntity.ok(new JwtResponse(
+                    jwt,
                     userDetails.getId(),
                     userDetails.getUsername(),
-                    userDetails.getEmail()));
+                    userDetails.getEmail(),
+                    user.getPhoneNumber(),
+                    user.getFullName(),
+                    user.getRole().name()
+            ));
                     
         } catch (BadCredentialsException e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Invalid email or password!"));
